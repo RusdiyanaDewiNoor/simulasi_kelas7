@@ -1,0 +1,1054 @@
+<!doctype html>
+<html lang="id" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulasi Lembar Kerja Virtual</title>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      box-sizing: border-box;
+    }
+    
+    * {
+      box-sizing: border-box;
+    }
+
+    .cell-input {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: transparent;
+      text-align: center;
+      font-size: 14px;
+      padding: 8px;
+      outline: none;
+    }
+
+    .cell-input:focus {
+      background: #fff9e6;
+    }
+
+    .dragging {
+      opacity: 0.5;
+      cursor: grabbing;
+    }
+
+    .drag-over {
+      background: #e0f2fe !important;
+      border: 2px dashed #0284c7;
+    }
+
+    .selected-range {
+      background: #dbeafe !important;
+      border: 2px solid #3b82f6;
+    }
+
+    .formula-display {
+      background: #f0f9ff;
+      border: 2px solid #0284c7;
+      padding: 12px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+      margin-top: 12px;
+    }
+
+    .btn-primary {
+      transition: all 0.2s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+
+    .feedback-success {
+      background: #d1fae5;
+      border: 2px solid #10b981;
+      color: #065f46;
+    }
+
+    .feedback-error {
+      background: #fee2e2;
+      border: 2px solid #ef4444;
+      color: #991b1b;
+    }
+
+    .instruction-item {
+      transition: all 0.3s;
+    }
+
+    .instruction-item.active {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+    }
+  </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full bg-gradient-to-br from-blue-50 to-indigo-100 m-0 p-0 overflow-auto">
+  <div class="w-full h-full p-6"><!-- Header -->
+   <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+    <h1 id="main-title" class="text-3xl font-bold text-center text-indigo-700">Simulasi Lembar Kerja Virtual - Belajar Mengolah Data</h1>
+    <p class="text-center text-gray-600 mt-2">Mata Pelajaran: Informatika | Kelas: VII SMP</p>
+   </div>
+   <div class="grid grid-cols-12 gap-6 h-auto"><!-- Panel Kiri: Instruksi -->
+    <div class="col-span-3">
+     <div class="bg-white rounded-xl shadow-lg p-5 h-full">
+      <h2 id="instruction-title" class="text-xl font-bold text-indigo-700 mb-4 flex items-center"><span class="text-2xl mr-2">📝</span> Instruksi</h2>
+      <div id="instruction-container" class="space-y-3"><!-- Instructions will be dynamically loaded -->
+      </div>
+     </div>
+    </div><!-- Panel Tengah: Lembar Kerja -->
+    <div class="col-span-6">
+     <div class="bg-white rounded-xl shadow-lg p-5">
+      <div class="flex justify-between items-center mb-4">
+       <h2 class="text-xl font-bold text-indigo-700">Lembar Kerja</h2>
+       <div id="task-counter" class="bg-indigo-100 text-indigo-700 px-4 py-2 rounded-lg font-semibold">
+        Tugas: <span id="current-task">1</span> / <span id="total-tasks">5</span>
+       </div>
+      </div><!-- Spreadsheet Area -->
+      <div id="spreadsheet-container" class="border-2 border-gray-300 rounded-lg overflow-hidden bg-gray-50">
+       <table id="spreadsheet" class="w-full border-collapse"><!-- Table will be dynamically generated -->
+       </table>
+      </div><!-- Formula Result Display -->
+      <div id="formula-result" class="hidden formula-display mt-4">
+       <div class="font-semibold text-gray-700 mb-2">
+        Rumus:
+       </div>
+       <div id="formula-text" class="text-indigo-700 font-mono text-lg mb-2"></div>
+       <div class="font-semibold text-gray-700 mb-2">
+        Hasil:
+       </div>
+       <div id="result-text" class="text-green-700 font-bold text-2xl"></div>
+      </div><!-- Feedback Area -->
+      <div id="feedback-area" class="hidden mt-4 p-4 rounded-lg">
+       <div class="flex items-start"><span id="feedback-icon" class="text-3xl mr-3"></span>
+        <div class="flex-1">
+         <div id="feedback-title" class="font-bold text-lg mb-2"></div>
+         <div id="feedback-message" class="text-sm"></div>
+        </div>
+       </div><button id="next-task-btn" class="hidden mt-4 w-full bg-indigo-600 text-white py-2 px-4 rounded-lg font-semibold btn-primary hover:bg-indigo-700"> Lanjut ke Tugas Berikutnya → </button>
+      </div>
+     </div>
+    </div><!-- Panel Kanan: Alat dan Menu -->
+    <div class="col-span-3">
+     <div class="bg-white rounded-xl shadow-lg p-5">
+      <h2 class="text-xl font-bold text-indigo-700 mb-4 flex items-center"><span class="text-2xl mr-2">🛠️</span> Alat</h2><!-- Tools Section -->
+      <div class="space-y-4"><!-- Add/Remove Rows -->
+       <div id="row-tools" class="hidden">
+        <h3 class="font-semibold text-gray-700 mb-2">Baris</h3>
+        <div class="space-y-2"><button id="add-row-btn" class="w-full bg-green-500 text-white py-2 px-4 rounded-lg font-semibold btn-primary hover:bg-green-600"> ➕ Tambah Baris </button> <button id="delete-row-btn" class="w-full bg-red-500 text-white py-2 px-4 rounded-lg font-semibold btn-primary hover:bg-red-600"> ➖ Hapus Baris </button>
+        </div>
+       </div><!-- Add/Remove Columns -->
+       <div id="column-tools" class="hidden">
+        <h3 class="font-semibold text-gray-700 mb-2">Kolom</h3>
+        <div class="space-y-2"><button id="add-column-btn" class="w-full bg-green-500 text-white py-2 px-4 rounded-lg font-semibold btn-primary hover:bg-green-600"> ➕ Tambah Kolom </button> <button id="delete-column-btn" class="w-full bg-red-500 text-white py-2 px-4 rounded-lg font-semibold btn-primary hover:bg-red-600"> ➖ Hapus Kolom </button>
+        </div>
+       </div><!-- Sort Tools -->
+       <div id="sort-tools" class="hidden">
+        <h3 class="font-semibold text-gray-700 mb-2">Urutkan Data</h3>
+        <div class="space-y-2"><button id="sort-asc-btn" class="w-full bg-blue-500 text-white py-2 px-4 rounded-lg font-semibold btn-primary hover:bg-blue-600"> ⬆️ Urut Naik </button> <button id="sort-desc-btn" class="w-full bg-blue-500 text-white py-2 px-4 rounded-lg font-semibold btn-primary hover:bg-blue-600"> ⬇️ Urut Turun </button>
+        </div>
+       </div><!-- Calculation Tools -->
+       <div id="calc-tools" class="hidden">
+        <h3 class="font-semibold text-gray-700 mb-2">Perhitungan</h3>
+        <div class="space-y-2"><button id="sum-btn" class="w-full bg-purple-500 text-white py-2 px-4 rounded-lg font-semibold btn-primary hover:bg-purple-600"> Jumlah </button> <button id="avg-btn" class="w-full bg-purple-500 text-white py-2 px-4 rounded-lg font-semibold btn-primary hover:bg-purple-600"> Rata-rata </button> <button id="max-btn" class="w-full bg-purple-500 text-white py-2 px-4 rounded-lg font-semibold btn-primary hover:bg-purple-600"> Nilai Maks </button> <button id="min-btn" class="w-full bg-purple-500 text-white py-2 px-4 rounded-lg font-semibold btn-primary hover:bg-purple-600"> Nilai Min </button>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+  <script>
+    const defaultConfig = {
+      main_title: "Simulasi Lembar Kerja Virtual - Belajar Mengolah Data",
+      instruction_title: "Instruksi"
+    };
+
+    // Task definitions with different datasets - Version 1
+    const tasksVersion1 = [
+      {
+        id: 1,
+        title: "Menghitung Rata-rata Nilai",
+        instruction: "Pilih semua nilai siswa (klik dan seret dari sel B2 ke B6), kemudian klik tombol <strong>Rata-rata</strong> untuk menghitung nilai rata-rata kelas.",
+        data: [
+          ["Nama", "Nilai"],
+          ["Andi", "85"],
+          ["Budi", "78"],
+          ["Citra", "92"],
+          ["Dewi", "88"],
+          ["Eko", "80"]
+        ],
+        requiredAction: "average",
+        requiredRange: { startRow: 1, endRow: 5, startCol: 1, endCol: 1 },
+        correctAnswer: 84.6,
+        tools: ["calc"],
+        material: "Rata-rata dihitung dengan menjumlahkan semua nilai, lalu dibagi dengan banyaknya data. Rumus: AVERAGE(B2:B6) = (85+78+92+88+80)/5 = 84.6"
+      },
+      {
+        id: 2,
+        title: "Mengurutkan Data Siswa",
+        instruction: "Pilih kolom Umur (klik header kolom B), kemudian klik tombol <strong>Urut Naik</strong> untuk mengurutkan siswa dari yang termuda ke tertua.",
+        data: [
+          ["Nama", "Umur"],
+          ["Rina", "14"],
+          ["Andi", "13"],
+          ["Zahra", "15"],
+          ["Budi", "12"],
+          ["Citra", "13"]
+        ],
+        requiredAction: "sort_asc",
+        requiredRange: { startRow: 0, endRow: 5, startCol: 1, endCol: 1 },
+        correctAnswer: ["12", "13", "13", "14", "15"],
+        tools: ["sort"],
+        material: "Mengurutkan data secara ascending (naik) berarti menyusun dari nilai terkecil ke terbesar. Pada contoh ini: 12 → 13 → 13 → 14 → 15. Pengurutan membantu kita melihat pola dan membandingkan data dengan mudah."
+      },
+      {
+        id: 3,
+        title: "Menambah dan Mengisi Data Baru",
+        instruction: "Klik tombol <strong>Tambah Baris</strong> untuk menambah siswa baru, lalu isi nama 'Farhan' dan nilai '90' pada baris baru tersebut.",
+        data: [
+          ["Nama", "Nilai"],
+          ["Lisa", "82"],
+          ["Mario", "76"],
+          ["Nina", "88"]
+        ],
+        requiredAction: "add_row_and_fill",
+        expectedNewRow: ["Farhan", "90"],
+        tools: ["row"],
+        material: "Menambah baris baru memungkinkan kita menginput data tambahan. Pastikan data diisi pada kolom yang tepat agar tabel tetap terstruktur dan mudah dibaca."
+      },
+      {
+        id: 4,
+        title: "Mencari Nilai Tertinggi",
+        instruction: "Pilih semua nilai ujian (klik dan seret dari sel B2 ke B7), kemudian klik tombol <strong>Nilai Maks</strong> untuk menemukan nilai tertinggi.",
+        data: [
+          ["Nama", "Nilai Ujian"],
+          ["Putra", "75"],
+          ["Qori", "88"],
+          ["Rani", "92"],
+          ["Sandi", "81"],
+          ["Tina", "95"],
+          ["Umar", "79"]
+        ],
+        requiredAction: "max",
+        requiredRange: { startRow: 1, endRow: 6, startCol: 1, endCol: 1 },
+        correctAnswer: 95,
+        tools: ["calc"],
+        material: "Fungsi MAX mencari nilai terbesar dalam sekumpulan data. Rumus: MAX(B2:B7) akan mengecek semua angka dan mengembalikan nilai tertinggi yaitu 95. Fungsi ini berguna untuk mengetahui prestasi terbaik."
+      },
+      {
+        id: 5,
+        title: "Menghitung Total Penjualan",
+        instruction: "Pilih semua data penjualan (klik dan seret dari sel B2 ke B5), kemudian klik tombol <strong>Jumlah</strong> untuk menghitung total penjualan bulan ini.",
+        data: [
+          ["Produk", "Terjual"],
+          ["Buku", "45"],
+          ["Pensil", "120"],
+          ["Penghapus", "80"],
+          ["Penggaris", "65"]
+        ],
+        requiredAction: "sum",
+        requiredRange: { startRow: 1, endRow: 4, startCol: 1, endCol: 1 },
+        correctAnswer: 310,
+        tools: ["calc"],
+        material: "Fungsi SUM menjumlahkan semua nilai dalam rentang sel. Rumus: SUM(B2:B5) = 45+120+80+65 = 310. Penjumlahan data membantu kita mendapatkan total keseluruhan dengan cepat dan akurat."
+      }
+    ];
+
+    // Task definitions - Version 2
+    const tasksVersion2 = [
+      {
+        id: 1,
+        title: "Menghitung Rata-rata Tinggi Badan",
+        instruction: "Pilih semua data tinggi badan (klik dan seret dari sel B2 ke B6), kemudian klik tombol <strong>Rata-rata</strong> untuk menghitung tinggi rata-rata.",
+        data: [
+          ["Nama", "Tinggi (cm)"],
+          ["Faisal", "165"],
+          ["Gita", "158"],
+          ["Hendra", "172"],
+          ["Intan", "160"],
+          ["Joko", "170"]
+        ],
+        requiredAction: "average",
+        requiredRange: { startRow: 1, endRow: 5, startCol: 1, endCol: 1 },
+        correctAnswer: 165,
+        tools: ["calc"],
+        material: "Rata-rata dihitung dengan menjumlahkan semua nilai, lalu dibagi dengan banyaknya data. Rumus: AVERAGE(B2:B6) = (165+158+172+160+170)/5 = 165"
+      },
+      {
+        id: 2,
+        title: "Mengurutkan Harga Makanan",
+        instruction: "Pilih kolom Harga (klik header kolom B), kemudian klik tombol <strong>Urut Naik</strong> untuk mengurutkan makanan dari termurah ke termahal.",
+        data: [
+          ["Menu", "Harga"],
+          ["Nasi Goreng", "15000"],
+          ["Mie Ayam", "12000"],
+          ["Soto", "18000"],
+          ["Bakso", "10000"],
+          ["Ayam Geprek", "16000"]
+        ],
+        requiredAction: "sort_asc",
+        requiredRange: { startRow: 0, endRow: 5, startCol: 1, endCol: 1 },
+        correctAnswer: ["10000", "12000", "15000", "16000", "18000"],
+        tools: ["sort"],
+        material: "Mengurutkan data secara ascending (naik) berarti menyusun dari nilai terkecil ke terbesar. Pada contoh ini: 10000 → 12000 → 15000 → 16000 → 18000. Ini memudahkan kita membandingkan harga."
+      },
+      {
+        id: 3,
+        title: "Menambah Data Buah Baru",
+        instruction: "Klik tombol <strong>Tambah Baris</strong> untuk menambah buah baru, lalu isi nama 'Semangka' dan stok '25' pada baris baru tersebut.",
+        data: [
+          ["Buah", "Stok"],
+          ["Apel", "30"],
+          ["Jeruk", "45"],
+          ["Mangga", "20"]
+        ],
+        requiredAction: "add_row_and_fill",
+        expectedNewRow: ["Semangka", "25"],
+        tools: ["row"],
+        material: "Menambah baris baru memungkinkan kita menginput data tambahan. Pastikan data diisi pada kolom yang tepat agar tabel tetap terstruktur dan mudah dibaca."
+      },
+      {
+        id: 4,
+        title: "Mencari Durasi Film Terpanjang",
+        instruction: "Pilih semua durasi film (klik dan seret dari sel B2 ke B6), kemudian klik tombol <strong>Nilai Maks</strong> untuk menemukan film terpanjang.",
+        data: [
+          ["Judul Film", "Durasi (menit)"],
+          ["Petualangan", "105"],
+          ["Komedi", "95"],
+          ["Drama", "120"],
+          ["Aksi", "110"],
+          ["Fantasi", "130"]
+        ],
+        requiredAction: "max",
+        requiredRange: { startRow: 1, endRow: 5, startCol: 1, endCol: 1 },
+        correctAnswer: 130,
+        tools: ["calc"],
+        material: "Fungsi MAX mencari nilai terbesar dalam sekumpulan data. Rumus: MAX(B2:B6) akan mengecek semua angka dan mengembalikan nilai tertinggi yaitu 130 menit. Fungsi ini berguna untuk mencari nilai maksimum."
+      },
+      {
+        id: 5,
+        title: "Menghitung Total Pengunjung",
+        instruction: "Pilih semua data pengunjung (klik dan seret dari sel B2 ke B5), kemudian klik tombol <strong>Jumlah</strong> untuk menghitung total pengunjung minggu ini.",
+        data: [
+          ["Hari", "Pengunjung"],
+          ["Senin", "85"],
+          ["Selasa", "92"],
+          ["Rabu", "78"],
+          ["Kamis", "95"]
+        ],
+        requiredAction: "sum",
+        requiredRange: { startRow: 1, endRow: 4, startCol: 1, endCol: 1 },
+        correctAnswer: 350,
+        tools: ["calc"],
+        material: "Fungsi SUM menjumlahkan semua nilai dalam rentang sel. Rumus: SUM(B2:B5) = 85+92+78+95 = 350. Penjumlahan data membantu kita mendapatkan total keseluruhan dengan cepat dan akurat."
+      }
+    ];
+
+    // Task definitions - Version 3
+    const tasksVersion3 = [
+      {
+        id: 1,
+        title: "Menghitung Rata-rata Suhu",
+        instruction: "Pilih semua data suhu (klik dan seret dari sel B2 ke B6), kemudian klik tombol <strong>Rata-rata</strong> untuk menghitung suhu rata-rata.",
+        data: [
+          ["Kota", "Suhu (°C)"],
+          ["Jakarta", "32"],
+          ["Bandung", "24"],
+          ["Surabaya", "30"],
+          ["Yogyakarta", "28"],
+          ["Medan", "31"]
+        ],
+        requiredAction: "average",
+        requiredRange: { startRow: 1, endRow: 5, startCol: 1, endCol: 1 },
+        correctAnswer: 29,
+        tools: ["calc"],
+        material: "Rata-rata dihitung dengan menjumlahkan semua nilai, lalu dibagi dengan banyaknya data. Rumus: AVERAGE(B2:B6) = (32+24+30+28+31)/5 = 29°C"
+      },
+      {
+        id: 2,
+        title: "Mengurutkan Berat Hewan",
+        instruction: "Pilih kolom Berat (klik header kolom B), kemudian klik tombol <strong>Urut Naik</strong> untuk mengurutkan hewan dari yang teringan ke terberat.",
+        data: [
+          ["Hewan", "Berat (kg)"],
+          ["Sapi", "450"],
+          ["Kambing", "35"],
+          ["Kerbau", "600"],
+          ["Ayam", "2"],
+          ["Bebek", "3"]
+        ],
+        requiredAction: "sort_asc",
+        requiredRange: { startRow: 0, endRow: 5, startCol: 1, endCol: 1 },
+        correctAnswer: ["2", "3", "35", "450", "600"],
+        tools: ["sort"],
+        material: "Mengurutkan data secara ascending (naik) berarti menyusun dari nilai terkecil ke terbesar. Pada contoh ini: 2 → 3 → 35 → 450 → 600. Pengurutan membantu membandingkan data dengan mudah."
+      },
+      {
+        id: 3,
+        title: "Menambah Data Olahraga Baru",
+        instruction: "Klik tombol <strong>Tambah Baris</strong> untuk menambah olahraga baru, lalu isi nama 'Bulu Tangkis' dan peserta '18' pada baris baru tersebut.",
+        data: [
+          ["Olahraga", "Peserta"],
+          ["Sepak Bola", "22"],
+          ["Basket", "15"],
+          ["Voli", "12"]
+        ],
+        requiredAction: "add_row_and_fill",
+        expectedNewRow: ["Bulu Tangkis", "18"],
+        tools: ["row"],
+        material: "Menambah baris baru memungkinkan kita menginput data tambahan. Pastikan data diisi pada kolom yang tepat agar tabel tetap terstruktur dan mudah dibaca."
+      },
+      {
+        id: 4,
+        title: "Mencari Jarak Terjauh",
+        instruction: "Pilih semua data jarak (klik dan seret dari sel B2 ke B7), kemudian klik tombol <strong>Nilai Maks</strong> untuk menemukan jarak terjauh.",
+        data: [
+          ["Rute", "Jarak (km)"],
+          ["A ke B", "12"],
+          ["B ke C", "25"],
+          ["C ke D", "18"],
+          ["D ke E", "30"],
+          ["E ke F", "22"],
+          ["F ke G", "15"]
+        ],
+        requiredAction: "max",
+        requiredRange: { startRow: 1, endRow: 6, startCol: 1, endCol: 1 },
+        correctAnswer: 30,
+        tools: ["calc"],
+        material: "Fungsi MAX mencari nilai terbesar dalam sekumpulan data. Rumus: MAX(B2:B7) akan mengecek semua angka dan mengembalikan nilai tertinggi yaitu 30 km. Ini berguna untuk mencari nilai maksimum."
+      },
+      {
+        id: 5,
+        title: "Menghitung Total Halaman Buku",
+        instruction: "Pilih semua data halaman (klik dan seret dari sel B2 ke B5), kemudian klik tombol <strong>Jumlah</strong> untuk menghitung total halaman yang dibaca.",
+        data: [
+          ["Buku", "Halaman"],
+          ["Sejarah", "120"],
+          ["Matematika", "150"],
+          ["Bahasa", "95"],
+          ["IPA", "135"]
+        ],
+        requiredAction: "sum",
+        requiredRange: { startRow: 1, endRow: 4, startCol: 1, endCol: 1 },
+        correctAnswer: 500,
+        tools: ["calc"],
+        material: "Fungsi SUM menjumlahkan semua nilai dalam rentang sel. Rumus: SUM(B2:B5) = 120+150+95+135 = 500. Penjumlahan data membantu kita mendapatkan total keseluruhan dengan cepat dan akurat."
+      }
+    ];
+
+    let currentVersion = 1;
+    let tasks = tasksVersion1;
+
+    let currentTaskIndex = 0;
+    let selectedRange = null;
+    let isDragging = false;
+    let tableData = [];
+
+    function initSpreadsheet() {
+      const task = tasks[currentTaskIndex];
+      tableData = task.data.map(row => [...row]);
+      renderSpreadsheet();
+      updateInstructions();
+      updateTools();
+      hideFeedback();
+      document.getElementById('current-task').textContent = currentTaskIndex + 1;
+      document.getElementById('total-tasks').textContent = tasks.length;
+    }
+
+    function renderSpreadsheet() {
+      const table = document.getElementById('spreadsheet');
+      table.innerHTML = '';
+
+      // Create header row with column letters (A, B, C, ...)
+      const headerRow = document.createElement('tr');
+      
+      // Empty cell for top-left corner
+      const cornerCell = document.createElement('td');
+      cornerCell.className = 'border border-gray-300 bg-gray-200';
+      cornerCell.style.minWidth = '50px';
+      cornerCell.style.height = '40px';
+      headerRow.appendChild(cornerCell);
+
+      // Column headers (A, B, C, ...)
+      tableData[0].forEach((_, colIndex) => {
+        const th = document.createElement('td');
+        th.className = 'border border-gray-300 bg-gray-200 font-bold text-gray-700 text-center';
+        th.style.minWidth = '120px';
+        th.style.height = '40px';
+        th.textContent = getColumnLetter(colIndex);
+        headerRow.appendChild(th);
+      });
+      table.appendChild(headerRow);
+
+      // Create data rows with row numbers
+      tableData.forEach((row, rowIndex) => {
+        const tr = document.createElement('tr');
+        
+        // Row number header
+        const rowHeader = document.createElement('td');
+        rowHeader.className = 'border border-gray-300 bg-gray-200 font-bold text-gray-700 text-center';
+        rowHeader.style.minWidth = '50px';
+        rowHeader.style.height = '40px';
+        rowHeader.textContent = rowIndex + 1;
+        tr.appendChild(rowHeader);
+
+        // Data cells
+        row.forEach((cell, colIndex) => {
+          const td = document.createElement('td');
+          td.className = 'border border-gray-300 p-0';
+          td.style.minWidth = '120px';
+          td.style.height = '40px';
+          
+          if (rowIndex === 0) {
+            td.className += ' bg-indigo-100 font-bold text-indigo-800';
+          } else {
+            td.className += ' bg-white';
+          }
+
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.value = cell;
+          input.className = 'cell-input';
+          input.dataset.row = rowIndex;
+          input.dataset.col = colIndex;
+
+          if (rowIndex === 0) {
+            input.readOnly = true;
+            input.style.cursor = 'default';
+            input.style.fontWeight = 'bold';
+          }
+
+          input.addEventListener('mousedown', handleCellMouseDown);
+          input.addEventListener('mouseenter', handleCellMouseEnter);
+          input.addEventListener('mouseup', handleCellMouseUp);
+          input.addEventListener('input', handleCellInput);
+
+          td.appendChild(input);
+          tr.appendChild(td);
+        });
+
+        table.appendChild(tr);
+      });
+    }
+
+    function handleCellMouseDown(e) {
+      isDragging = true;
+      selectedRange = {
+        startRow: parseInt(e.target.dataset.row),
+        endRow: parseInt(e.target.dataset.row),
+        startCol: parseInt(e.target.dataset.col),
+        endCol: parseInt(e.target.dataset.col)
+      };
+      updateSelectedDisplay();
+    }
+
+    function handleCellMouseEnter(e) {
+      if (!isDragging) return;
+      selectedRange.endRow = parseInt(e.target.dataset.row);
+      selectedRange.endCol = parseInt(e.target.dataset.col);
+      updateSelectedDisplay();
+    }
+
+    function handleCellMouseUp() {
+      isDragging = false;
+    }
+
+    function handleCellInput(e) {
+      const row = parseInt(e.target.dataset.row);
+      const col = parseInt(e.target.dataset.col);
+      tableData[row][col] = e.target.value;
+
+      const task = tasks[currentTaskIndex];
+      if (task.requiredAction === 'add_row_and_fill') {
+        checkAddRowTask();
+      }
+    }
+
+    function updateSelectedDisplay() {
+      const inputs = document.querySelectorAll('.cell-input');
+      inputs.forEach(input => {
+        input.parentElement.classList.remove('selected-range');
+      });
+
+      if (!selectedRange) return;
+
+      const minRow = Math.min(selectedRange.startRow, selectedRange.endRow);
+      const maxRow = Math.max(selectedRange.startRow, selectedRange.endRow);
+      const minCol = Math.min(selectedRange.startCol, selectedRange.endCol);
+      const maxCol = Math.max(selectedRange.startCol, selectedRange.endCol);
+
+      inputs.forEach(input => {
+        const row = parseInt(input.dataset.row);
+        const col = parseInt(input.dataset.col);
+        if (row >= minRow && row <= maxRow && col >= minCol && col <= maxCol) {
+          input.parentElement.classList.add('selected-range');
+        }
+      });
+    }
+
+    function updateInstructions() {
+      const task = tasks[currentTaskIndex];
+      const container = document.getElementById('instruction-container');
+      container.innerHTML = `
+        <div class="instruction-item active p-3 rounded-lg border-l-4 bg-yellow-50">
+          <div class="font-bold text-gray-800 mb-2">Tugas ${currentTaskIndex + 1}: ${task.title}</div>
+          <div class="text-sm text-gray-700">${task.instruction}</div>
+        </div>
+      `;
+    }
+
+    function updateTools() {
+      const task = tasks[currentTaskIndex];
+      
+      document.getElementById('row-tools').classList.add('hidden');
+      document.getElementById('column-tools').classList.add('hidden');
+      document.getElementById('sort-tools').classList.add('hidden');
+      document.getElementById('calc-tools').classList.add('hidden');
+
+      task.tools.forEach(tool => {
+        if (tool === 'row') document.getElementById('row-tools').classList.remove('hidden');
+        if (tool === 'column') document.getElementById('column-tools').classList.remove('hidden');
+        if (tool === 'sort') document.getElementById('sort-tools').classList.remove('hidden');
+        if (tool === 'calc') document.getElementById('calc-tools').classList.remove('hidden');
+      });
+    }
+
+    function addRow() {
+      const newRow = Array(tableData[0].length).fill('');
+      tableData.push(newRow);
+      renderSpreadsheet();
+    }
+
+    function deleteRow() {
+      const task = tasks[currentTaskIndex];
+      
+      // Check if current task is add_row_and_fill
+      if (task.requiredAction === 'add_row_and_fill') {
+        showFeedback(false, "Tidak Bisa Hapus Baris", "Pada tugas ini kamu harus <strong>menambah baris</strong>, bukan menghapus. Gunakan tombol <strong>Tambah Baris</strong> untuk menyelesaikan tugas ini.", "");
+        return;
+      }
+      
+      if (tableData.length > 2) {
+        tableData.pop();
+        renderSpreadsheet();
+      }
+    }
+
+    function addColumn() {
+      tableData.forEach(row => row.push(''));
+      renderSpreadsheet();
+    }
+
+    function deleteColumn() {
+      if (tableData[0].length > 2) {
+        tableData.forEach(row => row.pop());
+        renderSpreadsheet();
+      }
+    }
+
+    function sortData(ascending = true) {
+      const task = tasks[currentTaskIndex];
+      
+      if (!selectedRange || selectedRange.startCol !== selectedRange.endCol) {
+        showFeedback(false, "Pilih Satu Kolom", "Pilih satu kolom lengkap untuk diurutkan (klik header kolom atau pilih dari atas ke bawah).", "");
+        return;
+      }
+
+      const col = selectedRange.startCol;
+      const header = tableData[0];
+      const dataRows = tableData.slice(1);
+
+      dataRows.sort((a, b) => {
+        const aVal = isNaN(a[col]) ? a[col] : parseFloat(a[col]);
+        const bVal = isNaN(b[col]) ? b[col] : parseFloat(b[col]);
+        
+        if (typeof aVal === 'string' && typeof bVal === 'string') {
+          return ascending ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        }
+        return ascending ? aVal - bVal : bVal - aVal;
+      });
+
+      tableData = [header, ...dataRows];
+      renderSpreadsheet();
+
+      checkSortTask(ascending);
+    }
+
+    function calculateSum() {
+      if (!selectedRange) {
+        showFeedback(false, "Pilih Rentang Sel", "Pilih sel-sel yang ingin dijumlahkan dengan mengklik dan menyeret.", "");
+        return;
+      }
+
+      const values = getSelectedValues();
+      const numericValues = values.filter(v => !isNaN(v) && v !== '').map(v => parseFloat(v));
+      
+      if (numericValues.length === 0) {
+        showFeedback(false, "Data Tidak Valid", "Pilih sel yang berisi angka untuk dihitung.", "");
+        return;
+      }
+
+      const sum = numericValues.reduce((a, b) => a + b, 0);
+      const range = getRangeNotation();
+      
+      displayFormulaResult(`SUM(${range})`, sum);
+      checkCalculationTask('sum', sum);
+    }
+
+    function calculateAverage() {
+      if (!selectedRange) {
+        showFeedback(false, "Pilih Rentang Sel", "Pilih sel-sel yang ingin dihitung rata-ratanya dengan mengklik dan menyeret.", "");
+        return;
+      }
+
+      const values = getSelectedValues();
+      const numericValues = values.filter(v => !isNaN(v) && v !== '').map(v => parseFloat(v));
+      
+      if (numericValues.length === 0) {
+        showFeedback(false, "Data Tidak Valid", "Pilih sel yang berisi angka untuk dihitung.", "");
+        return;
+      }
+
+      const avg = numericValues.reduce((a, b) => a + b, 0) / numericValues.length;
+      const range = getRangeNotation();
+      
+      displayFormulaResult(`AVERAGE(${range})`, avg.toFixed(1));
+      checkCalculationTask('average', parseFloat(avg.toFixed(1)));
+    }
+
+    function calculateMax() {
+      if (!selectedRange) {
+        showFeedback(false, "Pilih Rentang Sel", "Pilih sel-sel untuk mencari nilai maksimum dengan mengklik dan menyeret.", "");
+        return;
+      }
+
+      const values = getSelectedValues();
+      const numericValues = values.filter(v => !isNaN(v) && v !== '').map(v => parseFloat(v));
+      
+      if (numericValues.length === 0) {
+        showFeedback(false, "Data Tidak Valid", "Pilih sel yang berisi angka untuk dihitung.", "");
+        return;
+      }
+
+      const max = Math.max(...numericValues);
+      const range = getRangeNotation();
+      
+      displayFormulaResult(`MAX(${range})`, max);
+      checkCalculationTask('max', max);
+    }
+
+    function calculateMin() {
+      if (!selectedRange) {
+        showFeedback(false, "Pilih Rentang Sel", "Pilih sel-sel untuk mencari nilai minimum dengan mengklik dan menyeret.", "");
+        return;
+      }
+
+      const values = getSelectedValues();
+      const numericValues = values.filter(v => !isNaN(v) && v !== '').map(v => parseFloat(v));
+      
+      if (numericValues.length === 0) {
+        showFeedback(false, "Data Tidak Valid", "Pilih sel yang berisi angka untuk dihitung.", "");
+        return;
+      }
+
+      const min = Math.min(...numericValues);
+      const range = getRangeNotation();
+      
+      displayFormulaResult(`MIN(${range})`, min);
+      checkCalculationTask('min', min);
+    }
+
+    function getSelectedValues() {
+      if (!selectedRange) return [];
+      
+      const minRow = Math.min(selectedRange.startRow, selectedRange.endRow);
+      const maxRow = Math.max(selectedRange.startRow, selectedRange.endRow);
+      const minCol = Math.min(selectedRange.startCol, selectedRange.endCol);
+      const maxCol = Math.max(selectedRange.startCol, selectedRange.endCol);
+
+      const values = [];
+      for (let r = minRow; r <= maxRow; r++) {
+        for (let c = minCol; c <= maxCol; c++) {
+          if (tableData[r] && tableData[r][c]) {
+            values.push(tableData[r][c]);
+          }
+        }
+      }
+      return values;
+    }
+
+    function getRangeNotation() {
+      if (!selectedRange) return '';
+      
+      const minRow = Math.min(selectedRange.startRow, selectedRange.endRow);
+      const maxRow = Math.max(selectedRange.startRow, selectedRange.endRow);
+      const minCol = Math.min(selectedRange.startCol, selectedRange.endCol);
+      const maxCol = Math.max(selectedRange.startCol, selectedRange.endCol);
+
+      const startCell = getColumnLetter(minCol) + (minRow + 1);
+      const endCell = getColumnLetter(maxCol) + (maxRow + 1);
+      
+      return startCell === endCell ? startCell : `${startCell}:${endCell}`;
+    }
+
+    function getColumnLetter(col) {
+      return String.fromCharCode(65 + col);
+    }
+
+    function displayFormulaResult(formula, result) {
+      document.getElementById('formula-result').classList.remove('hidden');
+      document.getElementById('formula-text').textContent = formula;
+      document.getElementById('result-text').textContent = result;
+    }
+
+    function hideFormulaResult() {
+      document.getElementById('formula-result').classList.add('hidden');
+    }
+
+    function checkCalculationTask(action, result) {
+      const task = tasks[currentTaskIndex];
+      
+      if (task.requiredAction !== action) {
+        showFeedback(false, "Operasi Salah", `Tugas ini meminta kamu untuk menghitung <strong>${getActionName(task.requiredAction)}</strong>, bukan ${getActionName(action)}.`, task.material);
+        return;
+      }
+
+      if (!rangeMatches(task.requiredRange)) {
+        showFeedback(false, "Rentang Sel Salah", `Pilih sel yang benar sesuai instruksi. Pastikan kamu memilih semua data yang diminta.`, task.material);
+        return;
+      }
+
+      if (Math.abs(result - task.correctAnswer) < 0.1) {
+        showFeedback(true, "Benar! Hebat! 🎉", `Kamu berhasil menghitung ${getActionName(action)} dengan tepat. Hasil: ${result}`, task.material);
+      } else {
+        showFeedback(false, "Hasil Kurang Tepat", `Periksa kembali sel yang kamu pilih. Pastikan semua data sudah termasuk dalam perhitungan.`, task.material);
+      }
+    }
+
+    function checkSortTask(ascending) {
+      const task = tasks[currentTaskIndex];
+      
+      if (task.requiredAction !== 'sort_asc' && task.requiredAction !== 'sort_desc') {
+        return;
+      }
+
+      const expectedAsc = task.requiredAction === 'sort_asc';
+      if (ascending !== expectedAsc) {
+        showFeedback(false, "Urutan Salah", `Tugas ini meminta kamu mengurutkan secara <strong>${expectedAsc ? 'naik (ascending)' : 'turun (descending)'}</strong>.`, task.material);
+        return;
+      }
+
+      const col = selectedRange.startCol;
+      const sortedValues = tableData.slice(1).map(row => row[col]);
+      
+      const isCorrect = JSON.stringify(sortedValues) === JSON.stringify(task.correctAnswer);
+      
+      if (isCorrect) {
+        showFeedback(true, "Benar! Sempurna! 🎉", `Kamu berhasil mengurutkan data dengan tepat. Data sekarang tersusun rapi dari ${expectedAsc ? 'terkecil ke terbesar' : 'terbesar ke terkecil'}.`, task.material);
+      } else {
+        showFeedback(false, "Belum Tepat", "Pastikan kamu memilih kolom yang benar untuk diurutkan sesuai instruksi.", task.material);
+      }
+    }
+
+    function checkAddRowTask() {
+      const task = tasks[currentTaskIndex];
+      
+      if (task.requiredAction !== 'add_row_and_fill') return;
+
+      if (tableData.length > task.data.length) {
+        const lastRow = tableData[tableData.length - 1];
+        const expected = task.expectedNewRow;
+        
+        const isCorrect = lastRow[0].toLowerCase().trim() === expected[0].toLowerCase() && 
+                         lastRow[1].trim() === expected[1];
+        
+        if (isCorrect) {
+          showFeedback(true, "Benar! Luar Biasa! 🎉", `Kamu berhasil menambah baris baru dan mengisi data dengan tepat. Nama: ${lastRow[0]}, Nilai: ${lastRow[1]}`, task.material);
+        }
+      }
+    }
+
+    function rangeMatches(required) {
+      if (!selectedRange || !required) return false;
+      
+      const minRow = Math.min(selectedRange.startRow, selectedRange.endRow);
+      const maxRow = Math.max(selectedRange.startRow, selectedRange.endRow);
+      const minCol = Math.min(selectedRange.startCol, selectedRange.endCol);
+      const maxCol = Math.max(selectedRange.startCol, selectedRange.endCol);
+
+      return minRow === required.startRow && 
+             maxRow === required.endRow && 
+             minCol === required.startCol && 
+             maxCol === required.endCol;
+    }
+
+    function getActionName(action) {
+      const names = {
+        'average': 'rata-rata',
+        'sum': 'jumlah',
+        'max': 'nilai maksimum',
+        'min': 'nilai minimum',
+        'sort_asc': 'urut naik',
+        'sort_desc': 'urut turun'
+      };
+      return names[action] || action;
+    }
+
+    function showFeedback(isCorrect, title, message, material) {
+      const feedbackArea = document.getElementById('feedback-area');
+      const feedbackIcon = document.getElementById('feedback-icon');
+      const feedbackTitle = document.getElementById('feedback-title');
+      const feedbackMessage = document.getElementById('feedback-message');
+      const nextBtn = document.getElementById('next-task-btn');
+
+      feedbackArea.classList.remove('hidden', 'feedback-success', 'feedback-error');
+      feedbackArea.classList.add(isCorrect ? 'feedback-success' : 'feedback-error');
+
+      feedbackIcon.textContent = isCorrect ? '✅' : '❌';
+      feedbackTitle.textContent = title;
+      
+      let fullMessage = message;
+      if (material) {
+        fullMessage += `<div class="mt-3 p-3 bg-white bg-opacity-50 rounded border-l-4 ${isCorrect ? 'border-green-600' : 'border-red-600'}"><strong>📚 Materi:</strong><br>${material}</div>`;
+      }
+      feedbackMessage.innerHTML = fullMessage;
+
+      if (isCorrect) {
+        nextBtn.classList.remove('hidden');
+      } else {
+        nextBtn.classList.add('hidden');
+      }
+    }
+
+    function hideFeedback() {
+      document.getElementById('feedback-area').classList.add('hidden');
+      hideFormulaResult();
+    }
+
+    function nextTask() {
+      currentTaskIndex++;
+      if (currentTaskIndex >= tasks.length) {
+        showCompletionMessage();
+        return;
+      }
+      selectedRange = null;
+      initSpreadsheet();
+    }
+
+    function showCompletionMessage() {
+      const container = document.getElementById('instruction-container');
+      container.innerHTML = `
+        <div class="p-4 bg-green-100 border-2 border-green-500 rounded-lg text-center">
+          <div class="text-5xl mb-3">🎉</div>
+          <div class="font-bold text-xl text-green-800 mb-2">Selamat!</div>
+          <div class="text-green-700">Kamu telah menyelesaikan semua tugas dengan baik!</div>
+        </div>
+      `;
+
+      const feedbackArea = document.getElementById('feedback-area');
+      feedbackArea.classList.remove('hidden', 'feedback-error');
+      feedbackArea.classList.add('feedback-success');
+      document.getElementById('feedback-icon').textContent = '🏆';
+      document.getElementById('feedback-title').textContent = 'Semua Tugas Selesai!';
+      document.getElementById('feedback-message').innerHTML = 'Kamu telah menguasai dasar-dasar pengolahan data pada lembar kerja. Terus berlatih untuk menjadi lebih mahir!';
+      
+      const nextBtn = document.getElementById('next-task-btn');
+      nextBtn.classList.remove('hidden');
+      nextBtn.textContent = '🔄 Mulai Lagi untuk Murid Berikutnya';
+      nextBtn.onclick = resetToFirstTask;
+    }
+
+    function resetToFirstTask() {
+      currentTaskIndex = 0;
+      selectedRange = null;
+      
+      // Rotate to next version
+      currentVersion++;
+      if (currentVersion > 3) {
+        currentVersion = 1;
+      }
+      
+      // Switch tasks based on version
+      if (currentVersion === 1) {
+        tasks = tasksVersion1;
+      } else if (currentVersion === 2) {
+        tasks = tasksVersion2;
+      } else {
+        tasks = tasksVersion3;
+      }
+      
+      initSpreadsheet();
+      
+      const nextBtn = document.getElementById('next-task-btn');
+      nextBtn.textContent = 'Lanjut ke Tugas Berikutnya →';
+      nextBtn.onclick = nextTask;
+    }
+
+    document.getElementById('add-row-btn').addEventListener('click', addRow);
+    document.getElementById('delete-row-btn').addEventListener('click', deleteRow);
+    document.getElementById('add-column-btn').addEventListener('click', addColumn);
+    document.getElementById('delete-column-btn').addEventListener('click', deleteColumn);
+    document.getElementById('sort-asc-btn').addEventListener('click', () => sortData(true));
+    document.getElementById('sort-desc-btn').addEventListener('click', () => sortData(false));
+    document.getElementById('sum-btn').addEventListener('click', calculateSum);
+    document.getElementById('avg-btn').addEventListener('click', calculateAverage);
+    document.getElementById('max-btn').addEventListener('click', calculateMax);
+    document.getElementById('min-btn').addEventListener('click', calculateMin);
+    document.getElementById('next-task-btn').addEventListener('click', nextTask);
+
+    document.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    // Element SDK Implementation
+    async function onConfigChange(config) {
+      const mainTitle = document.getElementById('main-title');
+      const instructionTitle = document.getElementById('instruction-title');
+      
+      if (mainTitle) {
+        mainTitle.textContent = config.main_title || defaultConfig.main_title;
+      }
+      
+      if (instructionTitle) {
+        instructionTitle.textContent = config.instruction_title || defaultConfig.instruction_title;
+      }
+    }
+
+    function mapToCapabilities(config) {
+      return {
+        recolorables: [],
+        borderables: [],
+        fontEditable: undefined,
+        fontSizeable: undefined
+      };
+    }
+
+    function mapToEditPanelValues(config) {
+      return new Map([
+        ["main_title", config.main_title || defaultConfig.main_title],
+        ["instruction_title", config.instruction_title || defaultConfig.instruction_title]
+      ]);
+    }
+
+    if (window.elementSdk) {
+      window.elementSdk.init({
+        defaultConfig,
+        onConfigChange,
+        mapToCapabilities,
+        mapToEditPanelValues
+      });
+    }
+
+    initSpreadsheet();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b56e95cd4185d0f',t:'MTc2Njk4NjI5MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
