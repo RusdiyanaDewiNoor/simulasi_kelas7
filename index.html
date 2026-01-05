@@ -88,6 +88,109 @@
       background: #fef3c7;
       border-left: 4px solid #f59e0b;
     }
+
+    .virtual-keyboard {
+      position: relative;
+      margin: 20px auto;
+      background: white;
+      border: 2px solid #4f46e5;
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      max-width: 320px;
+    }
+
+    .keyboard-key {
+      min-width: 28px;
+      height: 38px;
+      margin: 2px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #f8fafc;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.1s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 8px;
+    }
+
+    .keyboard-key:hover {
+      background: #e0e7ff;
+      border-color: #4f46e5;
+      transform: translateY(-1px);
+    }
+
+    .keyboard-key:active {
+      transform: translateY(0);
+      background: #c7d2fe;
+    }
+
+    .keyboard-key.wide {
+      min-width: 70px;
+    }
+
+    .keyboard-key.space {
+      min-width: 140px;
+    }
+
+    .keyboard-row {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 4px;
+    }
+
+    .keyboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e0e7ff;
+    }
+
+    .keyboard-close {
+      background: #ef4444;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      width: 24px;
+      height: 24px;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .temporary-warning {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #fee2e2;
+      border: 2px solid #ef4444;
+      color: #991b1b;
+      padding: 16px 24px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      z-index: 2000;
+      font-weight: 600;
+      animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
   </style>
   <style>@view-transition { navigation: auto; }</style>
   <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
@@ -127,6 +230,25 @@
         Hasil:
        </div>
        <div id="result-text" class="text-green-700 font-bold text-2xl"></div>
+      </div><!-- Check Answer Button for Task 3 -->
+      <div id="check-answer-container" class="hidden mt-4"><button id="check-answer-btn" class="w-full bg-green-600 text-white py-3 px-4 rounded-lg font-semibold btn-primary hover:bg-green-700 text-lg"> ✓ Cek Jawaban </button>
+      </div><!-- Virtual Keyboard -->
+      <div id="virtual-keyboard" class="virtual-keyboard" style="display: none;">
+       <div class="keyboard-header">
+        <div class="font-bold text-indigo-700 text-sm">
+         ⌨️ Keyboard Virtual
+        </div><button id="keyboard-close" class="keyboard-close">×</button>
+       </div>
+       <div class="keyboard-row"><button class="keyboard-key" data-key="1">1</button> <button class="keyboard-key" data-key="2">2</button> <button class="keyboard-key" data-key="3">3</button> <button class="keyboard-key" data-key="4">4</button> <button class="keyboard-key" data-key="5">5</button> <button class="keyboard-key" data-key="6">6</button> <button class="keyboard-key" data-key="7">7</button> <button class="keyboard-key" data-key="8">8</button> <button class="keyboard-key" data-key="9">9</button> <button class="keyboard-key" data-key="0">0</button>
+       </div>
+       <div class="keyboard-row"><button class="keyboard-key" data-key="Q">Q</button> <button class="keyboard-key" data-key="W">W</button> <button class="keyboard-key" data-key="E">E</button> <button class="keyboard-key" data-key="R">R</button> <button class="keyboard-key" data-key="T">T</button> <button class="keyboard-key" data-key="Y">Y</button> <button class="keyboard-key" data-key="U">U</button> <button class="keyboard-key" data-key="I">I</button> <button class="keyboard-key" data-key="O">O</button> <button class="keyboard-key" data-key="P">P</button>
+       </div>
+       <div class="keyboard-row"><button class="keyboard-key" data-key="A">A</button> <button class="keyboard-key" data-key="S">S</button> <button class="keyboard-key" data-key="D">D</button> <button class="keyboard-key" data-key="F">F</button> <button class="keyboard-key" data-key="G">G</button> <button class="keyboard-key" data-key="H">H</button> <button class="keyboard-key" data-key="J">J</button> <button class="keyboard-key" data-key="K">K</button> <button class="keyboard-key" data-key="L">L</button>
+       </div>
+       <div class="keyboard-row"><button class="keyboard-key" data-key="Z">Z</button> <button class="keyboard-key" data-key="X">X</button> <button class="keyboard-key" data-key="C">C</button> <button class="keyboard-key" data-key="V">V</button> <button class="keyboard-key" data-key="B">B</button> <button class="keyboard-key" data-key="N">N</button> <button class="keyboard-key" data-key="M">M</button> <button class="keyboard-key wide" data-key="Backspace">⌫</button>
+       </div>
+       <div class="keyboard-row"><button class="keyboard-key space" data-key=" ">Space</button>
+       </div>
       </div><!-- Feedback Area -->
       <div id="feedback-area" class="hidden mt-4 p-4 rounded-lg">
        <div class="flex items-start"><span id="feedback-icon" class="text-3xl mr-3"></span>
@@ -452,6 +574,7 @@
     let selectedRange = null;
     let isDragging = false;
     let tableData = [];
+    let activeInput = null;
 
     function initSpreadsheet() {
       const task = tasks[currentTaskIndex];
@@ -531,6 +654,8 @@
           input.addEventListener('mouseenter', handleCellMouseEnter);
           input.addEventListener('mouseup', handleCellMouseUp);
           input.addEventListener('input', handleCellInput);
+          input.addEventListener('focus', handleCellFocus);
+          input.addEventListener('blur', handleCellBlur);
 
           td.appendChild(input);
           tr.appendChild(td);
@@ -566,11 +691,44 @@
       const row = parseInt(e.target.dataset.row);
       const col = parseInt(e.target.dataset.col);
       tableData[row][col] = e.target.value;
+    }
 
+    function handleCellBlur() {
+      // Don't hide keyboard on blur - only manual close
+    }
+
+    function handleCellFocus(e) {
       const task = tasks[currentTaskIndex];
-      if (task.requiredAction === 'add_row_and_fill') {
-        checkAddRowTask();
+      // Show keyboard only for add_row_and_fill tasks and non-header cells
+      if (task.requiredAction === 'add_row_and_fill' && e.target.dataset.row !== '0') {
+        activeInput = e.target;
+        showVirtualKeyboard();
       }
+    }
+
+    function showVirtualKeyboard() {
+      document.getElementById('virtual-keyboard').style.display = 'block';
+    }
+
+    function hideVirtualKeyboard() {
+      document.getElementById('virtual-keyboard').style.display = 'none';
+      activeInput = null;
+    }
+
+    function handleKeyboardInput(key) {
+      if (!activeInput) return;
+
+      const currentValue = activeInput.value;
+      
+      if (key === 'Backspace') {
+        activeInput.value = currentValue.slice(0, -1);
+      } else {
+        activeInput.value = currentValue + key;
+      }
+
+      // Trigger input event to update data
+      const event = new Event('input', { bubbles: true });
+      activeInput.dispatchEvent(event);
     }
 
     function updateSelectedDisplay() {
@@ -613,6 +771,7 @@
       document.getElementById('column-tools').classList.add('hidden');
       document.getElementById('sort-tools').classList.add('hidden');
       document.getElementById('calc-tools').classList.add('hidden');
+      document.getElementById('check-answer-container').classList.add('hidden');
 
       task.tools.forEach(tool => {
         if (tool === 'row') document.getElementById('row-tools').classList.remove('hidden');
@@ -620,6 +779,11 @@
         if (tool === 'sort') document.getElementById('sort-tools').classList.remove('hidden');
         if (tool === 'calc') document.getElementById('calc-tools').classList.remove('hidden');
       });
+
+      // Show check answer button for add_row_and_fill task
+      if (task.requiredAction === 'add_row_and_fill') {
+        document.getElementById('check-answer-container').classList.remove('hidden');
+      }
     }
 
     function addRow() {
@@ -633,7 +797,7 @@
       
       // Check if current task is add_row_and_fill
       if (task.requiredAction === 'add_row_and_fill') {
-        showFeedback(false, "Tidak Bisa Hapus Baris", "Pada tugas ini kamu harus <strong>menambah baris</strong>, bukan menghapus. Gunakan tombol <strong>Tambah Baris</strong> untuk menyelesaikan tugas ini.", "");
+        showTemporaryWarning("⚠️ Tidak Bisa Hapus Baris - Pada tugas ini kamu harus menambah baris, bukan menghapus!");
         return;
       }
       
@@ -641,6 +805,23 @@
         tableData.pop();
         renderSpreadsheet();
       }
+    }
+
+    function showTemporaryWarning(message) {
+      // Create warning element
+      const warning = document.createElement('div');
+      warning.className = 'temporary-warning';
+      warning.textContent = message;
+      document.body.appendChild(warning);
+
+      // Remove after 5 seconds
+      setTimeout(() => {
+        warning.style.opacity = '0';
+        warning.style.transition = 'opacity 0.3s ease-out';
+        setTimeout(() => {
+          document.body.removeChild(warning);
+        }, 300);
+      }, 5000);
     }
 
     function addColumn() {
@@ -873,7 +1054,12 @@
         
         if (isCorrect) {
           showFeedback(true, "Benar! Luar Biasa! 🎉", `Kamu berhasil menambah baris baru dan mengisi data dengan tepat. Nama: ${lastRow[0]}, Nilai: ${lastRow[1]}`, task.material);
+          hideVirtualKeyboard();
+        } else {
+          showFeedback(false, "Belum Tepat", "Periksa kembali data yang kamu masukkan. Pastikan nama dan nilai sesuai dengan instruksi.", task.material);
         }
+      } else {
+        showFeedback(false, "Belum Menambah Baris", "Klik tombol <strong>Tambah Baris</strong> terlebih dahulu, lalu isi data sesuai instruksi.", "");
       }
     }
 
@@ -941,6 +1127,7 @@
         return;
       }
       selectedRange = null;
+      hideVirtualKeyboard();
       initSpreadsheet();
     }
 
@@ -1004,6 +1191,23 @@
     document.getElementById('max-btn').addEventListener('click', calculateMax);
     document.getElementById('min-btn').addEventListener('click', calculateMin);
     document.getElementById('next-task-btn').addEventListener('click', nextTask);
+    document.getElementById('check-answer-btn').addEventListener('click', checkAddRowTask);
+
+    // Virtual Keyboard Event Listeners
+    document.querySelectorAll('.keyboard-key').forEach(key => {
+      key.addEventListener('click', (e) => {
+        e.preventDefault();
+        const keyValue = e.target.dataset.key;
+        handleKeyboardInput(keyValue);
+      });
+    });
+
+    document.getElementById('keyboard-close').addEventListener('click', () => {
+      hideVirtualKeyboard();
+      if (activeInput) {
+        activeInput.blur();
+      }
+    });
 
     document.addEventListener('mouseup', () => {
       isDragging = false;
@@ -1050,5 +1254,5 @@
 
     initSpreadsheet();
   </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b56e95cd4185d0f',t:'MTc2Njk4NjI5MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9b90515190efce85',t:'MTc2NzU4ODIzNy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
